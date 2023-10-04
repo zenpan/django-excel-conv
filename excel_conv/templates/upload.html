@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  <title>Upload</title>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2>Upload Excel File</h2>
+</div>
+<div class="container">
+  <p>On this page you can upload an Excel file that needs to be converted
+     to another format which can be used for MailMerge.
+  <p>To begin the process to upload the Excel file which needs to be converted
+     press the "Upload" button.  After the file is uploaded you will be 
+     redirected to the "Jobs" page where you can convert the file.
+  <p>
+</div>
+<div class="container">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    {% comment %} <div class="form-group">
+      <label for="file">File</label>
+      <input type="file" class="form-control-file" id="file" name="file">
+    </div> {% endcomment %}
+    <button type="submit" class="btn btn-primary">Upload</button>
+  </form>
+{% endblock %}

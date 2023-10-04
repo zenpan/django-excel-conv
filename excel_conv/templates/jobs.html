@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  <title>Conversion Jobs</title>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <p>These are the Conversion Jobs available to be converted or already converted.  To convert a file press the Convert
+    button on the line of the file you wish to convert.  After conversion the Status
+    column will show the status of the job.
+  <p>
+    If the Status field shows "Success" then the job has been completed.  If the Success field shows "False" then
+    the job has not been completed.  If the Success field shows "None" then the
+    job is still in progress.  If the Error field contains text then there was an
+    error with the job.  If the Error field is blank then the job was successful.
+  <p>
+    Please note the date and time of the job, the input file, the output file,
+    and whether the job was successful or not.  If the job was not successful,
+    please check the error column for more information.  If you have any
+    questions, please contact the administrator.
+</div>
+<div class="container">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th scope="col">Job ID</th>
+        <th scope="col">Original File</th>
+        <th scope="col">Convert</th>
+        <th scope="col">Converted File</th>
+        <th scope="col">Status</th>
+        <th scope="col">Date Uploaded</th>
+        <th scope="col">Date Converted</th>
+        <th scope="col">Error</th>
+      </tr>
+    </thead>
+    {% for job in all_jobs  %}
+    <tr>
+      <td>{{ job.id }}</td>
+      <td>
+        <a href="{{ MEDIA_URL }}{{ job.excel_file }}">{{ job.excel_file.name|slice:"12:"}}</a>
+      </td>
+      {% if not job.success %}
+        <td>
+          <a href="{% url 'convert' job.id %}" class="btn btn-primary btn-sm" role="button">
+            Convert
+          </a>
+        </td>
+      {% else %}
+        <td>
+          <button type="button" class="btn btn-success btn-sm" disabled>
+            Done
+          </button>
+        </td>
+      {% endif %}
+      <td><a href="{{ MEDIA_URL }}{{ job.conv_file }}">{{ job.conv_file.name }}</a></td>
+      {% if job.success is 'True' %}
+        <td>Completed</td>
+      {% elif job.success is 'False' %}
+        <td>Failed</td>
+      {% else %}
+        <td>Ready</td>
+      {% endif %}
+      <td>{{ job.upload_at }}</td>
+      <td>{{ job.conv_at }}</td>
+      {% if job.error is null %}
+        <td>No errors</td>
+      {% else %}
+        <td>{{ job.error }}</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% endblock %}

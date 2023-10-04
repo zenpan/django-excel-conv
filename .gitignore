@@ -1,0 +1,4 @@
+.venv/*
+/convert.py
+/db.sqlite3
+/**/*.xlsx
