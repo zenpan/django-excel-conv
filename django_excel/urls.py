@@ -18,10 +18,14 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path
+from excel_conv import views as excel_conv_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('excel_conv.urls')),
+    path('account/', include('users_app.urls')),
+    path('contact', excel_conv_views.contact, name='contact'),
+    path('about', excel_conv_views.about, name='about'),
 ]
 
 if settings.DEBUG:

@@ -1,11 +1,31 @@
 {% extends 'base.html' %}
 
-{% block title %}
-  <title>Conversion Jobs</title>
-{% endblock %}
-
 {% block content %}
 <div class="container">
+</br>
+  {% if messages %}
+    {% for message in messages %}
+      {% if message.tags == "success" %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert" >  
+          <div>
+            <svg class="bi flex-shrink-0 me-2" width="32" height="32" role="img" aria-label="Success:"><use xlink:href="#check-circle-fill"/></svg>
+            <strong>{{ message }}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        </div>
+      {% endif %}
+      {% if message.tags == "info" %}
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+          <div>
+            <svg class="bi flex-shrink-0 me-2" width="32" height="32" role="img" aria-label="Info:"><use xlink:href="#info-fill"/></svg>
+            <strong>{{ message }}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+<p>
   <p>These are the Conversion Jobs available to be converted or already converted.  To convert a file press the Convert
     button on the line of the file you wish to convert.  After conversion the Status
     column will show the status of the job.
@@ -31,7 +51,7 @@
         <th scope="col">Status</th>
         <th scope="col">Date Uploaded</th>
         <th scope="col">Date Converted</th>
-        <th scope="col">Error</th>
+        <th scope="col">Delete</th>
       </tr>
     </thead>
     {% for job in all_jobs  %}
@@ -63,14 +83,44 @@
       {% endif %}
       <td>{{ job.upload_at }}</td>
       <td>{{ job.conv_at }}</td>
-      {% if job.error is null %}
-        <td>No errors</td>
-      {% else %}
-        <td>{{ job.error }}</td>
-      {% endif %}
+      <td><a href="{% url 'delete' job.id %}" class="btn btn-danger btn-sm" role=buton>Delete</a></td>
     </tr>
     {% endfor %}
   </table>
+  <nav aria-label="Page navigation">
+    <ul class="pagination justify-content-end">
+      
+      {% if all_jobs.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page=1"><<</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <a class="page-link"><<</a>
+        </li>
+      {% endif %}
+    
+      {% if all_jobs.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ all_jobs.previous_page_number }}">{{ all_jobs.previous_page_number }}</a></li>
+      {% endif %}
+      
+      <li class="page-item"><a class="page-link" href="?page={{ all_jobs.number }}">{{ all_jobs.number }}</a></li>
+      
+      {% if all_jobs.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ all_jobs.next_page_number }}">{{ all_jobs.next_page_number }}</a></li>
+      {% endif %}
+
+      {% if all_jobs.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ all_jobs.paginator.num_pages }}">>></a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <a class="page-link">>></a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
 </div>
 
 {% endblock %}

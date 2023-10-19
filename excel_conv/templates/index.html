@@ -1,20 +1,25 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}
-  <title>Convert Excel</title>
+  <title>Doyaga Law Firm Apps</title>
 {% endblock %}
 
 {% block content %}
   <div class="container">
     <div class="row">
-      <div class="col-md-6">
-        {% comment %} <form action="{{ url_for('convert') }}" method="post" enctype="multipart/form-data">
-          <div class="form-group">
-            <label for="file">File</label>
-            <input type="file" name="file" class="form-control-file" id="file">
-          </div>
-          <button type="submit" class="btn btn-primary">Convert</button>
-        </form> {% endcomment %}
+      <div class="col-md-4">
+        <img src="{% static 'law_library.jpg' %}" alt="Doyaga Law Firm" class="rounded-5 shadow-lg img-responsive" width=80% height=80%>
+      </div>
+      <div class="col-md-4">
+        <img src="{% static 'laptops.jpg' %}" alt="Doyaga Law Firm" class="rounded-5 shadow-lg img-responsive"width=80% height=80%>
+      </p>
+        <div class="position-relative py-2 px-4">
+          <a href="{% url 'upload' %}" class="btn btn-primary btn-sm position-absolute top-100 start-50 translate-middle mt-1" role="button" >Excel Conversion</a>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <img src="{% static 'documents.jpg' %}" alt="Doyaga Law Firm" class="rounded-5 shadow-lg img-responsive"width=80% height=80%>
       </div>
     </div>
   </div>

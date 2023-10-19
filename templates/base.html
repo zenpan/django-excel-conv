@@ -5,8 +5,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon.png' %}">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     {% block title %}
+      <title>{{ welcome_text }}</title>
     {% endblock %}
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -18,9 +20,6 @@
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
               
-              <!-- <li class="nav-item">
-                <a class="nav-link" href="#">Link</a>
-              </li>
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                   Dropdown
@@ -31,34 +30,66 @@
                   <li><hr class="dropdown-divider"></li>
                   <li><a class="dropdown-item" href="#">Something else here</a></li>
                 </ul>
-              </li> -->
+              </li>
               
               <li class="nav-item">
                 <a class="nav-link active" aria-current="page" href="{% url 'about' %}">About</a>
               </li>
+              {% if user.is_authenticated %}
               <li class="nav-item">
                 <a class="nav-link active" aria-current="page" href="{% url 'upload' %}">Upload</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link active" aria-current="page" href="{% url 'jobs' %}">Jobs</a>
               </li>
-              {% comment %} <li class="nav-item">
-                <a class="nav-link disabled" aria-disabled="true">History</a>
-              </li> {% endcomment %}
+              {% endif %}
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="{% url 'contact' %}">Contact Us</a>
+              </li>
               <li class="nav-item">
                 <a class="nav-link active" aria-current="page" href="{% url 'help' %}">Help</a>
               </li>
             </ul>
-            <!-- <form class="d-flex" role="search">
-              <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-              <button class="btn btn-outline-success" type="submit">Search</button>
-            </form> -->
+            {% if user.is_authenticated %}
+            <div class="navbar-nav">
+              <div class="p-3 mb-2 bg-dark text-white">Logged in as {{ user.username }}</div>
+              <a class="nav-link" href="{% url 'logout' %}"><button type="submit" class="btn btn-outline-info">Logout</button></a>
+            </div>
+          {% else %}
+            {% if request.path == '/account/login' %}
+            <div class="navbar-nav">
+              <button type="submit" class="btn btn-primary disabled">Login</button>
+            </div>
+            <div class="navbar-nav">
+              <a class="nav-link" href="{% url 'register' %}"><button type="submit" class="btn btn-success">Register</button></a>
+            </div>
+            {% else %}
+            <div class="navbar-nav">
+              <a class="nav-link" href="{% url 'login' %}"><button type="submit" class="btn btn-primary">Login</button></a>
+            </div>
+            <div class="navbar-nav">
+              <a class="nav-link" href="{% url 'register' %}"><button type="submit" class="btn btn-success">Register</button></a>
+            </div>
+            {% endif %}
+          {% endif %}
           </div>
         </div>
+
       </nav>
+      <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
+        <symbol id="check-circle-fill" viewBox="0 0 16 16">
+          <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+        </symbol>
+        <symbol id="info-fill" viewBox="0 0 16 16">
+          <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+        </symbol>
+        <symbol id="exclamation-triangle-fill" viewBox="0 0 16 16">
+          <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+        </symbol>
+      </svg>
 
   </head>
-  <body>
+  <body  class="bg-light p-2 text-dark bg-opacity-50">
     <div class="container">
       <h2>{{ welcome_text }}</h2>
     </div>

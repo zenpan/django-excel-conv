@@ -22,12 +22,18 @@ MEDIA_URL = '/media/'
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-dc-#pstyxm^*bi2m_g-zi8d__qi8yejxv^2pd8knp$8rexnc3s'
+SECRET_KEY = 'k#h0f@b=evuv21_mtx09m$f(asurpsu)t-3x4i)z=aza-w^4n*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+# debugging CSRF verification errors behind an Nginx reverse proxy
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+TRUSTED_PROXIES = ['django_nginx']
+CSRF_TRUSTED_ORIGINS = ["http://localhost:80", "http://django_nginx:80"]
+
 
 
 # Application definition
@@ -40,16 +46,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'excel_conv',
-    'users_app',
-    'crispy_forms',
-    'crispy_bootstrap5',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+#   'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -82,8 +85,12 @@ WSGI_APPLICATION = 'django_excel.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'django_excel',
+        'USER': 'django_excel',
+        'PASSWORD': 'django_excel',
+        'HOST': 'db',
+        'PORT': '5432',
     }
 }
 
@@ -131,9 +138,3 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
-CRISPY_TEMPLATE_PACK = "bootstrap5"
-
-LOGIN_REDIRECT_URL = 'jobs'
-LOGIN_URL = 'login'
