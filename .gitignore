@@ -3,3 +3,6 @@
 /db.sqlite3
 #/**/*.xlsx
 /**/.DS_Store
+__pycache__/
+*.pyc
+
