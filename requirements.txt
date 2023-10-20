@@ -1,7 +1,9 @@
 asgiref==3.7.2
 astroid==2.15.8
+crispy-bootstrap5==0.7
 dill==0.3.7
 Django==4.2.5
+django-crispy-forms==2.1
 et-xmlfile==1.1.0
 gunicorn==21.2.0
 isort==5.12.0
