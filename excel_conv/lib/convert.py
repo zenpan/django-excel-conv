@@ -69,9 +69,13 @@ def convert_sheet(object):
                 middle_name = data["debtor_name"].split(' ')[2]
                 new_file_working_row[0].value = f"{first_name} {middle_name} {last_name}"
             elif data["creditor"] is not None:
+                middle_name = None
                 new_file_working_row[0].value = f"{first_name} {last_name}"
 
-            data["full_name"] = f"{first_name} {middle_name} {last_name}".strip()
+            if middle_name:
+                data["full_name"] = f"{first_name} {middle_name} {last_name}".strip()
+            else:
+                data["full_name"] = f"{first_name} {last_name}".strip()
             
             debtor_street_address = data["debtor_address"].splitlines()[0]
             debtor_city_state_zip = data["debtor_address"].splitlines()[1]
