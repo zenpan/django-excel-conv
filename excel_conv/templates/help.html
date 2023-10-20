@@ -3,5 +3,21 @@
 {% block content %}
 <div class="container">
   <p>Help page</p>
+  <p>This application takes an Excel spreadsheet provided by a Public Records search of
+   Judgment and Liens in the State of Florida using the search terms: </p>
+   <div class="container">
+    <code>((creditor(cavalry) OR (capital one) OR (Discover) OR (cascade capital) OR (LVNV) OR (Midland) OR (American Express) OR (CITIBANK) OR (SYNCHRONY) OR (Paypal) OR (PNC Bank) OR (SYNCHRONY BA) OR (Suntrust bank) OR (SYNCHRONY BANK) OR (suncoast credit union) OR (midflorida credit union) OR (regions bank) OR (cbna) OR (branch B&T) OR (CHase) OR (discover) OR (first premier bank) OR (well fargo) OR (AMEX) OR (usaa saving bank) OR (td bANK) OR (portfolio recovery) or (Bank of America) or (wells Fargo) OR (Synchrony) or (Barclay Bank) OR (ford) OR (GM) OR (general motors) OR (Toyota motor) OR (cach) OR (allied) or (credit one) or (honda) OR (Jefferson capital)) AND (filing-office (Broward) or (Dade) or (Highlands) or (Indian River) or (Martin) or (Monroe) or (okeechobee) or (Palm Beach) or (St. Lucie)) AND filing-date (btw 03/01/2023 and 04/01/2023)) AND filing-state (Florida))</code>
+    </br></br>
+  </div>
+  <p>which results in an exported Excel spreadsheet with numbered debtors, names followed by their LexisID,
+    an address all in one cell, filing information and the creditor. This application takes that spreadsheet
+    and converts it to an Excel spreadsheet that can be used to perform a MailMerge into a Word document.</p>
+    <p>It is important to note that the spreadsheet must be in the same format as the one provided by the
+      Public Records search. The spreadsheet must be saved as a .xlsx file and the file must be uploaded
+      to the application using the upload page.</p>
+    <p>Once the spreadsheet is uploaded, the user will be redirected to the jobs page where the user 
+      can view the status of the job and run the conversion by clicking "convert". The user will then 
+      be able to download the converted spreadsheet after the job is complete.</p>
+    <p>It is important to note that the time to convert the spreadsheet can take up to <strong>1 minute</strong>. </p>
 </div>
 {% endblock %}

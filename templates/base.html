@@ -20,7 +20,7 @@
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
               
-              <li class="nav-item dropdown">
+              {% comment %} <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                   Dropdown
                 </a>
@@ -30,7 +30,7 @@
                   <li><hr class="dropdown-divider"></li>
                   <li><a class="dropdown-item" href="#">Something else here</a></li>
                 </ul>
-              </li>
+              </li> {% endcomment %}
               
               <li class="nav-item">
                 <a class="nav-link active" aria-current="page" href="{% url 'about' %}">About</a>
@@ -60,16 +60,16 @@
             <div class="navbar-nav">
               <button type="submit" class="btn btn-primary disabled">Login</button>
             </div>
-            <div class="navbar-nav">
+            {% comment %} <div class="navbar-nav">
               <a class="nav-link" href="{% url 'register' %}"><button type="submit" class="btn btn-success">Register</button></a>
-            </div>
+            </div> {% endcomment %}
             {% else %}
             <div class="navbar-nav">
               <a class="nav-link" href="{% url 'login' %}"><button type="submit" class="btn btn-primary">Login</button></a>
             </div>
-            <div class="navbar-nav">
+            {% comment %} <div class="navbar-nav">
               <a class="nav-link" href="{% url 'register' %}"><button type="submit" class="btn btn-success">Register</button></a>
-            </div>
+            </div> {% endcomment %}
             {% endif %}
           {% endif %}
           </div>
