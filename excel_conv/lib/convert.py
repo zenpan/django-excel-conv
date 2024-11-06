@@ -59,51 +59,117 @@ def convert_sheet(object):
         }
 
         if data["creditor"]:
-            debtor_name_lines = data["debtor_name"].splitlines()
-            data["debtor_name"] = debtor_name_lines[0]
-            
-            last_name = data["debtor_name"].split(', ')[0]
-            first_name = data["debtor_name"].split(' ')[1]
+            try:
+                # Process debtor name
+                debtor_name_lines = data["debtor_name"].splitlines()
+                if len(debtor_name_lines) >= 1 and debtor_name_lines[0]:
+                    data["debtor_name"] = debtor_name_lines[0]
+                else:
+                    print(f"Skipping row {i}: debtor_name is empty or missing.")
+                    i += 1
+                    continue
 
-            if len(data["debtor_name"].split(' ')) > 2 and data["creditor"] is not None:
-                middle_name = data["debtor_name"].split(' ')[2]
-                new_file_working_row[0].value = f"{first_name} {middle_name} {last_name}"
-            elif data["creditor"] is not None:
-                middle_name = None
-                new_file_working_row[0].value = f"{first_name} {last_name}"
+                # Split debtor name into parts
+                debtor_name_parts = data["debtor_name"].split(', ')
+                if len(debtor_name_parts) == 2:
+                    last_name = debtor_name_parts[0]
+                    first_name_parts = debtor_name_parts[1].split(' ')
+                    first_name = first_name_parts[0]
+                    middle_name = ' '.join(first_name_parts[1:]) if len(first_name_parts) > 1 else ''
+                else:
+                    print(f"Skipping row {i}: debtor_name not in expected format.")
+                    i += 1
+                    continue
 
-            if middle_name:
+                # Construct full name
                 data["full_name"] = f"{first_name} {middle_name} {last_name}".strip()
-            else:
-                data["full_name"] = f"{first_name} {last_name}".strip()
-            
-            debtor_street_address = data["debtor_address"].splitlines()[0]
-            debtor_city_state_zip = data["debtor_address"].splitlines()[1]
-            debtor_city = debtor_city_state_zip.split(', ')[0]
-            debtor_state = debtor_city_state_zip.split(', ')[1].split(' ')[0]
-            debtor_zip = debtor_city_state_zip.split(', ')[1].split(' ')[1]
+                new_file_working_row[0].value = data["full_name"]
 
-            data.update(
-                {
-                    "debtor_street_address": debtor_street_address,
-                    "debtor_city": debtor_city,
-                    "debtor_state": debtor_state,
-                    "debtor_zip": debtor_zip,
-                    "creditor": data["creditor"],
-                }
-            )
+                # debtor_name_lines = data["debtor_name"].splitlines()
+                # data["debtor_name"] = debtor_name_lines[0]
+                #
+                # last_name = data["debtor_name"].split(', ')[0]
+                # first_name = data["debtor_name"].split(' ')[1]
+                #
+                # if len(data["debtor_name"].split(' ')) > 2 and data["creditor"] is not None:
+                #     middle_name = data["debtor_name"].split(' ')[2]
+                #     new_file_working_row[0].value = f"{first_name} {middle_name} {last_name}"
+                # elif data["creditor"] is not None:
+                #     middle_name = None
+                #     new_file_working_row[0].value = f"{first_name} {last_name}"
+                #
+                # if middle_name:
+                #     data["full_name"] = f"{first_name} {middle_name} {last_name}".strip()
+                # else:
+                #     data["full_name"] = f"{first_name} {last_name}".strip()
 
-            if data["creditor"] is not None:
-                new_file_working_row[1].value = debtor_street_address
-                new_file_working_row[2].value = debtor_city
-                new_file_working_row[3].value = debtor_state
-                new_file_working_row[4].value = debtor_zip
-                new_file_working_row[5].value = data["creditor"]
+                # Process debtor address
+                debtor_address_lines = data["debtor_address"].splitlines()
 
-            # for index, (key, value) in enumerate(data.items()):
-            #     new_file_working_row[index].value = value
+                if len(debtor_address_lines) == 3:
+                    # Expected format with street address and city/state/zip
+                    debtor_street_address = debtor_address_lines[0]
+                    debtor_city_state_zip = debtor_address_lines[1]
+                    debtor_county = debtor_address_lines[2]
+                # elif len(debtor_address_lines) == 2:
+                #     # Only city/state/zip provided
+                #     debtor_street_address = ''
+                #     debtor_city_state_zip = debtor_address_lines[0]
+                else:
+                    print(f"Skipping row {i}: debtor_address does not have expected number of lines.")
+                    i += 1
+                    continue
 
-            new_file_row += 1
+                # Split city, state, zip
+                debtor_city_state_zip_parts = debtor_city_state_zip.split(', ')
+                if len(debtor_city_state_zip_parts) == 2:
+                    debtor_city = debtor_city_state_zip_parts[0]
+                    state_zip_parts = debtor_city_state_zip_parts[1].split(' ')
+                    if len(state_zip_parts) == 2:
+                        debtor_state = state_zip_parts[0]
+                        debtor_zip = state_zip_parts[1]
+                    else:
+                        print(f"Skipping row {i}: debtor_state and zip not in expected format.")
+                        i += 1
+                        continue
+                else:
+                    print(f"Skipping row {i}: debtor_city_state_zip not in expected format.")
+                    i += 1
+                    continue
+
+                # debtor_street_address = data["debtor_address"].splitlines()[0]
+                # debtor_city_state_zip = data["debtor_address"].splitlines()[1]
+                # debtor_city = debtor_city_state_zip.split(', ')[0]
+                # debtor_state = debtor_city_state_zip.split(', ')[1].split(' ')[0]
+                # debtor_zip = debtor_city_state_zip.split(', ')[1].split(' ')[1]
+
+                data.update(
+                    {
+                        "debtor_street_address": debtor_street_address,
+                        "debtor_city": debtor_city,
+                        "debtor_state": debtor_state,
+                        "debtor_zip": debtor_zip,
+                        "creditor": data["creditor"],
+                    }
+                )
+
+                if data["creditor"] is not None:
+                    new_file_working_row[1].value = debtor_street_address
+                    new_file_working_row[2].value = debtor_city
+                    new_file_working_row[3].value = debtor_state
+                    new_file_working_row[4].value = debtor_zip
+                    new_file_working_row[5].value = data["creditor"]
+
+                # for index, (key, value) in enumerate(data.items()):
+                #     new_file_working_row[index].value = value
+
+                new_file_row += 1
+            except Exception as e:
+                print(f"Error processing row {i}: {e}")
+                print(f"debtor_name: {data['debtor_name']}")
+                print(f"debtor_address: {data['debtor_address']}")
+                print(f"creditor: {data['creditor']}")
+                raise e  # Optionally re-raise the exception to stop execution
 
         converted_workbook.save(temp_file_path)
         i += 1
