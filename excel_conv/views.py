@@ -9,7 +9,7 @@
             convert
 """
 
-import os
+from pathlib import Path
 from django.shortcuts import render, redirect
 # from django.http import HttpResponse
 from django.views.generic.edit import CreateView
@@ -26,19 +26,22 @@ from excel_conv.lib.convert import convert_sheet
 # --------------------------------------------------
 def index(request):
     """ The index view for the program """
-    print(request)
     context = { 'welcome_text': 'Doyaga Law Firm Apps'}
     return render(request, 'index.html', context)
 
 
 # --------------------------------------------------
+@login_required
 def delete(request, job_id):
     """ The delete view for the program """
     object = ConvJob.objects.get(pk=job_id)
+    excel_file_path = Path(object.excel_file.path)
+    conv_file_path = Path(object.conv_file.path) if object.conv_file else None
     object.delete()
-    os.remove(object.excel_file.path)
-    if object.conv_file:
-        os.remove(object.conv_file.path)
+    if excel_file_path.exists():
+        excel_file_path.unlink()
+    if conv_file_path and conv_file_path.exists():
+        conv_file_path.unlink()
     return redirect('jobs')
 
 
@@ -102,10 +105,9 @@ class Upload(LoginRequiredMixin, CreateView):
 
 
 # --------------------------------------------------
+@login_required
 def convert(request, job_id):
     """ The convert view for the program """
-    print(request)
     object = ConvJob.objects.get(pk=job_id)
-    print("")
     convert_sheet(object)
     return redirect('jobs')
