@@ -53,7 +53,10 @@
             {% if user.is_authenticated %}
             <div class="navbar-nav">
               <div class="p-3 mb-2 bg-dark text-white">Logged in as {{ user.username }}</div>
-              <a class="nav-link" href="{% url 'logout' %}"><button type="submit" class="btn btn-outline-info">Logout</button></a>
+              <form class="nav-link" method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-info">Logout</button>
+              </form>
             </div>
           {% else %}
             {% if request.path == '/account/login' %}

@@ -1,0 +1,8 @@
+Django==6.0.4
+crispy-bootstrap5
+django-crispy-forms
+gunicorn
+openpyxl
+psycopg2-binary
+pylint
+pylint-django
