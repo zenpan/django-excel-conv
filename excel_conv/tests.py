@@ -9,6 +9,8 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from openpyxl import Workbook, load_workbook
 
+from django_excel import __version__
+
 from excel_conv.lib.convert import convert_sheet, _format_judgment
 from excel_conv.models import ConvJob
 
@@ -143,6 +145,11 @@ class ViewTests(TestCase):
             with self.subTest(url_name=url_name):
                 response = self.client.get(reverse(url_name))
                 self.assertEqual(response.status_code, 200)
+
+    def test_pages_show_copyright_and_version_footer(self):
+        response = self.client.get(reverse("index"))
+        self.assertContains(response, "ZenPan Technology Solutions")
+        self.assertContains(response, __version__)
 
     def test_job_pages_require_login(self):
         for url_name, args in (
