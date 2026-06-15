@@ -9,7 +9,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from openpyxl import Workbook, load_workbook
 
-from excel_conv.lib.convert import convert_sheet
+from excel_conv.lib.convert import convert_sheet, _format_judgment
 from excel_conv.models import ConvJob
 
 
@@ -22,6 +22,7 @@ def make_source_workbook():
     worksheet["A1"] = "No."
     worksheet["B3"] = "DOE, JOHN Q"
     worksheet["C3"] = "123 Main St\nNewark, NJ 07102\nEssex County"
+    worksheet["D3"] = "Filing Date:1/1/2026\nAmount:$10,329\nCIVIL JUDGMENT"
     worksheet["E3"] = "Creditor LLC"
     worksheet["A6"] = "Permissible Use:"
 
@@ -42,6 +43,7 @@ def make_multi_sheet_source_workbook():
     data["A1"] = "No."
     data["B3"] = "DOE, JANE Q"
     data["C3"] = "123 Main St\nMiami, FL 33101-1234\nMiami-Dade County"
+    data["D3"] = "Filing Date:1/12/2026\nAmount:$2,251\nSMALL CLAIMS JUDGMENT"
     data["E3"] = "Creditor LLC"
     data["A6"] = "Permissible Use:"
 
@@ -81,12 +83,12 @@ class ConversionTests(TestCase):
         converted = load_workbook(TEST_MEDIA_ROOT / job.conv_file.name)
         worksheet = converted.active
         self.assertEqual(
-            [worksheet[f"{column}1"].value for column in "ABCDEF"],
-            ["name", "ADDRESS_1", "City", "State", "Zip", "Creditor"],
+            [worksheet[f"{column}1"].value for column in "ABCDEFG"],
+            ["name", "ADDRESS_1", "City", "State", "Zip", "Creditor", "Judgment"],
         )
         self.assertEqual(
-            [worksheet[f"{column}2"].value for column in "ABCDEF"],
-            ["JOHN Q DOE", "123 Main St", "Newark", "NJ", "07102", "Creditor LLC"],
+            [worksheet[f"{column}2"].value for column in "ABCDEFG"],
+            ["JOHN Q DOE", "123 Main St", "Newark", "NJ", "07102", "Creditor LLC", "$10,329.00"],
         )
         converted.close()
 
@@ -108,10 +110,20 @@ class ConversionTests(TestCase):
         converted = load_workbook(TEST_MEDIA_ROOT / job.conv_file.name)
         worksheet = converted.active
         self.assertEqual(
-            [worksheet[f"{column}2"].value for column in "ABCDEF"],
-            ["JANE Q DOE", "123 Main St", "Miami", "FL", "33101-1234", "Creditor LLC"],
+            [worksheet[f"{column}2"].value for column in "ABCDEFG"],
+            ["JANE Q DOE", "123 Main St", "Miami", "FL", "33101-1234", "Creditor LLC", "$2,251.00"],
         )
         converted.close()
+
+    def test_format_judgment_variants(self):
+        self.assertEqual(
+            _format_judgment("Filing Date:1/1/2026\nAmount:$7,798\nCIVIL JUDGMENT"),
+            "$7,798.00",
+        )
+        self.assertEqual(_format_judgment("Amount:$122,657"), "$122,657.00")
+        self.assertEqual(_format_judgment("Amount:$1,234.56"), "$1,234.56")
+        self.assertEqual(_format_judgment("Filing Date:1/1/2026\nno amount here"), "")
+        self.assertEqual(_format_judgment(None), "")
 
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
