@@ -9,6 +9,24 @@ import os
 
 
 # --------------------------------------------------
+def _select_data_worksheet(workbook):
+    """Return the worksheet that holds the debtor records.
+
+    LexisNexis exports keep the data on a 'Public Records Results List'
+    sheet, but that sheet isn't always the active one -- the Florida
+    exports open with an empty 'Sheet1' active, so a blind
+    workbook.active read the wrong sheet and the conversion failed.
+    Pick the first worksheet whose column A contains the 'No.' header;
+    fall back to the active sheet.
+    """
+    for worksheet in workbook.worksheets:
+        for row in range(1, min(worksheet.max_row, 50) + 1):
+            if worksheet.cell(row=row, column=1).value == "No.":
+                return worksheet
+    return workbook.active
+
+
+# --------------------------------------------------
 def convert_sheet(object):
     """convert_sheet function to test the conversion process"""
     
@@ -20,7 +38,7 @@ def convert_sheet(object):
     # initialize the original workbook and worksheet
     original_workbook = Workbook()
     original_workbook = load_workbook(object.excel_file.path)
-    original_worksheet = original_workbook.active
+    original_worksheet = _select_data_worksheet(original_workbook)
     
     # initialize the converted workbook and worksheet
     converted_workbook = Workbook()
@@ -36,13 +54,25 @@ def convert_sheet(object):
     converted_workbook.save(temp_file_path)
     
     # we need to find the first and last debtor in the source file
+    starting_row = None
+    ending_row = None
     column_a = original_worksheet["A"]
     for item in column_a:
         if item.value == "No.":
             starting_row = item.row + 2
-    for item in column_a:
         if item.value == "Permissible Use:":
             ending_row = item.row - 3
+
+    # if the markers are missing the file isn't in the expected layout;
+    # fail gracefully instead of raising (which used to surface as a 500).
+    if starting_row is None or ending_row is None:
+        object.error = (
+            "Could not find the debtor data range "
+            "('No.' / 'Permissible Use:' markers) in the file."
+        )
+        object.success = False
+        object.save()
+        return False
 
     # now we're going to loop through the debtor rows and convert them
     i = starting_row

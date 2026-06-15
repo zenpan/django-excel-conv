@@ -32,6 +32,26 @@ def make_source_workbook():
     return stream.getvalue()
 
 
+def make_multi_sheet_source_workbook():
+    """A workbook whose data is NOT on the active sheet, mirroring the Florida
+    exports: an empty 'Sheet1' is active and the records live on the
+    'Public Records Results List' sheet."""
+    workbook = Workbook()
+    workbook.active.title = "Sheet1"  # empty stub, active by default
+    data = workbook.create_sheet("Public Records Results List")
+    data["A1"] = "No."
+    data["B3"] = "DOE, JANE Q"
+    data["C3"] = "123 Main St\nMiami, FL 33101-1234\nMiami-Dade County"
+    data["E3"] = "Creditor LLC"
+    data["A6"] = "Permissible Use:"
+
+    stream = BytesIO()
+    workbook.save(stream)
+    workbook.close()
+    stream.seek(0)
+    return stream.getvalue()
+
+
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class ConversionTests(TestCase):
     @classmethod
@@ -67,6 +87,29 @@ class ConversionTests(TestCase):
         self.assertEqual(
             [worksheet[f"{column}2"].value for column in "ABCDEF"],
             ["JOHN Q DOE", "123 Main St", "Newark", "NJ", "07102", "Creditor LLC"],
+        )
+        converted.close()
+
+    def test_convert_finds_data_sheet_when_not_active(self):
+        # Regression for the Florida exports (the production /convert/517
+        # incident): records live on the 'Public Records Results List' sheet
+        # while an empty 'Sheet1' is active. The converter must find the data
+        # sheet rather than blindly reading workbook.active.
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile(
+                "FL_SOUTH.xlsx", make_multi_sheet_source_workbook()
+            )
+        )
+
+        self.assertTrue(convert_sheet(job))
+
+        job.refresh_from_db()
+        self.assertTrue(job.success)
+        converted = load_workbook(TEST_MEDIA_ROOT / job.conv_file.name)
+        worksheet = converted.active
+        self.assertEqual(
+            [worksheet[f"{column}2"].value for column in "ABCDEF"],
+            ["JANE Q DOE", "123 Main St", "Miami", "FL", "33101-1234", "Creditor LLC"],
         )
         converted.close()
 

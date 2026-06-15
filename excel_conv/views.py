@@ -114,13 +114,17 @@ def convert(request, job_id):
     """
     object = get_object_or_404(ConvJob, pk=job_id)
     try:
-        convert_sheet(object)
-        messages.success(request, 'File converted successfully.')
+        succeeded = convert_sheet(object)
     except Exception:
         object.success = False
         object.save()
+        succeeded = False
+
+    if succeeded:
+        messages.success(request, 'File converted successfully.')
+    else:
         messages.error(
             request,
-            'Conversion failed. Check that the file is in the expected format.',
+            object.error or 'Conversion failed. Check that the file is in the expected format.',
         )
     return redirect('jobs')
