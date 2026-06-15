@@ -1,7 +1,17 @@
 # django-excel-conv
 
-Django application for converting uploaded court Excel workbooks into a
-mail-merge-friendly spreadsheet format.
+Django application for converting uploaded LexisNexis "Public Records Results
+List" court Excel workbooks into a mail-merge-friendly spreadsheet for the
+Doyaga Law Firm letter workflow. Production: <https://excel.doyagalawfirm.com>.
+
+Each debtor record is flattened into six columns — `name`, `ADDRESS_1`, `City`,
+`State`, `Zip`, `Creditor`. Both the New York / New Jersey **and** Florida
+exports are supported; they share the `Public Records Results List` layout
+delimited by `No.` and `Permissible Use:` markers (the Florida export keeps its
+data behind an empty active `Sheet1`, which the converter handles). Converted
+and source files are downloaded through a login-required view.
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Runtime
 
@@ -25,8 +35,12 @@ uv pip sync requirements.txt
 .venv/bin/python -Wall manage.py test
 ```
 
-The test suite covers the core conversion path, public pages, authenticated
-upload, login protection for job actions, and Django 6 logout behavior.
+The test suite covers the core conversion path (NY/NJ and Florida layouts),
+public pages, authenticated upload and downloads, login protection for job
+actions, graceful handling of unparseable files, and Django 6 logout behavior.
+
+CI (`.github/workflows/ci.yml`) runs `manage.py check` and the full test suite
+on Python 3.12 for every push and pull request.
 
 ## Django 6 Upgrade Notes
 
