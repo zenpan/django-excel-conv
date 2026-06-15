@@ -67,7 +67,7 @@
     <tr>
       <td>{{ job.id }}</td>
       <td>
-        <a href="{{ MEDIA_URL }}{{ job.excel_file }}">{{ job.excel_file.name|slice:"12:"}}</a>
+        <a href="{% url 'download' job.id 'source' %}">{{ job.excel_file.name|slice:"12:"}}</a>
       </td>
       {% if not job.success %}
         <td>
@@ -82,7 +82,11 @@
           </button>
         </td>
       {% endif %}
-      <td><a href="{{ MEDIA_URL }}{{ job.conv_file }}">{{ job.conv_file.name }}</a></td>
+      <td>
+        {% if job.conv_file %}
+          <a href="{% url 'download' job.id 'converted' %}">{{ job.conv_file.name|slice:"11:" }}</a>
+        {% endif %}
+      </td>
       {% if job.success %}
         <td>Completed</td>
       {% else %}

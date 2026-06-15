@@ -219,3 +219,39 @@ class ViewTests(TestCase):
         self.assertRedirects(response, reverse("jobs"))
         job.refresh_from_db()
         self.assertFalse(job.success)
+
+    def test_download_requires_login(self):
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile("source.xlsx", make_source_workbook()),
+        )
+        response = self.client.get(reverse("download", args=[job.id, "source"]))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response["Location"])
+
+    def test_download_converted_file_for_logged_in_user(self):
+        self.client.force_login(self.user)
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile("source.xlsx", make_source_workbook()),
+        )
+        self.assertTrue(convert_sheet(job))
+
+        response = self.client.get(reverse("download", args=[job.id, "converted"]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment", response["Content-Disposition"])
+
+    def test_download_missing_converted_file_returns_404(self):
+        self.client.force_login(self.user)
+        job = ConvJob.objects.create(  # never converted -> no conv_file
+            excel_file=SimpleUploadedFile("source.xlsx", make_source_workbook()),
+        )
+        response = self.client.get(reverse("download", args=[job.id, "converted"]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_download_invalid_kind_returns_404(self):
+        self.client.force_login(self.user)
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile("source.xlsx", make_source_workbook()),
+        )
+        response = self.client.get(reverse("download", args=[job.id, "bogus"]))
+        self.assertEqual(response.status_code, 404)

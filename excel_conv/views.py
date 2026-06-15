@@ -9,7 +9,9 @@
             convert
 """
 
+import os
 from pathlib import Path
+from django.http import FileResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic.edit import CreateView
 from django.urls import reverse_lazy
@@ -128,3 +130,23 @@ def convert(request, job_id):
             object.error or 'Conversion failed. Check that the file is in the expected format.',
         )
     return redirect('jobs')
+
+
+# --------------------------------------------------
+@login_required
+def download(request, job_id, which):
+    """ Serve a job's source or converted file to logged-in users only.
+
+    The uploaded/converted spreadsheets contain debtor PII, so they are
+    streamed through this login-protected view rather than from a public
+    /media/ URL.
+    """
+    job = get_object_or_404(ConvJob, pk=job_id)
+    field = {'source': job.excel_file, 'converted': job.conv_file}.get(which)
+    if field is None or not field.name or not os.path.exists(field.path):
+        raise Http404('File not available.')
+    return FileResponse(
+        field.open('rb'),
+        as_attachment=True,
+        filename=os.path.basename(field.name),
+    )
