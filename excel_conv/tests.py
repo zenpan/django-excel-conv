@@ -80,6 +80,34 @@ def make_workbook_with_bad_row():
     return stream.getvalue()
 
 
+def make_workbook_with_codefendants():
+    """A claim with three co-debtors in the LexisNexis layout: the first row
+    carries the creditor + amount; the following co-defendant rows have only a
+    name + address (blank No. / Filing / Creditor). The primary is a company."""
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet["A1"] = "No."
+    # primary debtor (a company) — carries creditor + amount
+    worksheet["A3"] = "525."
+    worksheet["B3"] = "EARL TRANSPORT SERVICE LLC"
+    worksheet["C3"] = "18738 Deer Tracks Loop\nLutz, FL 33558-8487\nPasco County"
+    worksheet["D3"] = "Filing Date:1/12/2026\nAmount:$21,380\nCIVIL JUDGMENT"
+    worksheet["E3"] = "AMERICAN EXPRESS NATIONAL BANK"
+    # co-defendant 1 (continuation row: name + address only)
+    worksheet["B4"] = "ROBLES, EARL\nLexID(sm):\n189601170822"
+    worksheet["C4"] = "18738 Deer Tracks Loop\nLutz, FL 33558-8487\nPasco County"
+    # co-defendant 2
+    worksheet["B5"] = "SOTO, EARL ROBLES\nLexID(sm):\n189601170822"
+    worksheet["C5"] = "18738 Deer Tracks Loop\nLutz, FL 33558-8487\nPasco County"
+    worksheet["A8"] = "Permissible Use:"  # ending_row = 8 - 3 = 5 -> rows 3,4,5
+
+    stream = BytesIO()
+    workbook.save(stream)
+    workbook.close()
+    stream.seek(0)
+    return stream.getvalue()
+
+
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class ConversionTests(TestCase):
     @classmethod
@@ -168,6 +196,32 @@ class ConversionTests(TestCase):
         # header + exactly one valid row; the malformed row was skipped
         self.assertEqual(worksheet.max_row, 2)
         self.assertEqual(worksheet["A2"].value, "JOHN Q DOE")
+        converted.close()
+
+    def test_convert_captures_co_defendants(self):
+        # Co-defendants/co-debtors (LexisNexis continuation rows with a blank
+        # creditor) must each become their own row, inheriting the claim's
+        # creditor + judgment; company names are kept as-is.
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile("codef.xlsx", make_workbook_with_codefendants())
+        )
+
+        self.assertTrue(convert_sheet(job))
+
+        job.refresh_from_db()
+        self.assertTrue(job.success)
+        converted = load_workbook(TEST_MEDIA_ROOT / job.conv_file.name)
+        worksheet = converted.active
+        # header + one row per co-debtor
+        self.assertEqual(worksheet.max_row, 4)
+        self.assertEqual(
+            [worksheet.cell(row=r, column=1).value for r in (2, 3, 4)],
+            ["EARL TRANSPORT SERVICE LLC", "EARL ROBLES", "EARL ROBLES SOTO"],
+        )
+        # every co-debtor shares the claim's creditor + judgment amount
+        for r in (2, 3, 4):
+            self.assertEqual(worksheet.cell(row=r, column=6).value, "AMERICAN EXPRESS NATIONAL BANK")
+            self.assertEqual(worksheet.cell(row=r, column=7).value, "$21,380.00")
         converted.close()
 
 

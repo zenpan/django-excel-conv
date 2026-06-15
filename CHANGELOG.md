@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-06-15
+
+### Added
+- **Co-defendant / co-debtor support.** LexisNexis lists multiple debtors on a
+  single claim as continuation rows — the first row carries the creditor and
+  amount, the following rows have only a name + address. These continuation
+  rows were silently dropped; each co-debtor is now emitted as its own row,
+  inheriting the claim's Creditor and Judgment amount and using its own
+  name/address (regression: FL_SOUTH rows 34–36) ([#10]).
+- **Company / organization debtors** (names without a "Last, First" comma, e.g.
+  `EARL TRANSPORT SERVICE LLC`) are now captured with the name kept as-is,
+  rather than skipped ([#10]).
+
+### Fixed
+- Names without a middle name no longer render with a double space (e.g.
+  `EARL  ROBLES` → `EARL ROBLES`) ([#10]).
+
 ## [1.3.1] - 2026-06-15
 
 ### Fixed
@@ -76,11 +93,13 @@ Modernization release (migrated `excel.doyagalawfirm.com`; URL unchanged).
   it to string literals.
 - `convert` and `delete` actions now require login (matching upload and jobs).
 
+[1.4.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.4.0
 [1.3.1]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.3.1
 [1.3.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.3.0
 [1.2.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.2.0
 [1.1.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.1.0
 [1.0.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.0.0
+[#10]: https://github.com/zenpan/django-excel-conv/pull/10
 [#9]: https://github.com/zenpan/django-excel-conv/pull/9
 [#8]: https://github.com/zenpan/django-excel-conv/pull/8
 [#7]: https://github.com/zenpan/django-excel-conv/pull/7

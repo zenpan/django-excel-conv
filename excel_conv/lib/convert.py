@@ -98,6 +98,12 @@ def convert_sheet(object):
     # now we're going to loop through the debtor rows and convert them
     i = starting_row
     new_file_row = 2
+    # The first row of a claim carries the creditor + filing. Co-defendant
+    # ("co-debtor") continuation rows that follow have only a name + address
+    # and a blank creditor; carry the creditor/filing forward so each
+    # co-debtor is emitted as its own row sharing the claim's creditor/amount.
+    current_creditor = None
+    current_filing = None
 
     while i <= ending_row:
         working_row = original_worksheet[i]
@@ -111,6 +117,15 @@ def convert_sheet(object):
         }
 
         if data["creditor"]:
+            current_creditor = data["creditor"]
+            current_filing = data["filing"]
+        else:
+            data["creditor"] = current_creditor
+            data["filing"] = current_filing
+
+        # Process every row that has a debtor name once a creditor is in
+        # scope -- this covers the primary debtor and each co-defendant.
+        if data["debtor_name"] and data["creditor"]:
             try:
                 # A creditor can be present while the name or address cell is
                 # empty; skip those rows up front so calling .splitlines() on
@@ -132,17 +147,21 @@ def convert_sheet(object):
                 # Split debtor name into parts
                 debtor_name_parts = data["debtor_name"].split(', ')
                 if len(debtor_name_parts) == 2:
+                    # "Last, First Middle" -> "First Middle Last"
                     last_name = debtor_name_parts[0]
                     first_name_parts = debtor_name_parts[1].split(' ')
                     first_name = first_name_parts[0]
                     middle_name = ' '.join(first_name_parts[1:]) if len(first_name_parts) > 1 else ''
+                    # Join only the non-empty parts so a missing middle name
+                    # doesn't leave a double space (e.g. "EARL  ROBLES").
+                    data["full_name"] = " ".join(
+                        part for part in (first_name, middle_name, last_name) if part
+                    )
                 else:
-                    print(f"Skipping row {i}: debtor_name not in expected format.")
-                    i += 1
-                    continue
+                    # No "Last, First" comma -> a company/organization (or a
+                    # co-defendant business); keep the name as-is.
+                    data["full_name"] = data["debtor_name"].strip()
 
-                # Construct full name
-                data["full_name"] = f"{first_name} {middle_name} {last_name}".strip()
                 new_file_working_row[0].value = data["full_name"]
 
                 # debtor_name_lines = data["debtor_name"].splitlines()
