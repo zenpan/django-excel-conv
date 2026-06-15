@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-06-15
+
+### Added
+- New **Judgment** column (column G) in the converted sheet: the judgment
+  dollar amount parsed from the source "Filing" column, formatted as
+  `$10,329.00`. Blank when the source row has no amount ([#7]).
+
 ## [1.1.0] - 2026-06-15
 
 Stabilization release following the 1.0.0 Django 6 migration. Resolves the
@@ -52,8 +59,10 @@ Modernization release (migrated `excel.doyagalawfirm.com`; URL unchanged).
   it to string literals.
 - `convert` and `delete` actions now require login (matching upload and jobs).
 
+[1.2.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.2.0
 [1.1.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.1.0
 [1.0.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.0.0
+[#7]: https://github.com/zenpan/django-excel-conv/pull/7
 [#2]: https://github.com/zenpan/django-excel-conv/pull/2
 [#3]: https://github.com/zenpan/django-excel-conv/pull/3
 [#4]: https://github.com/zenpan/django-excel-conv/pull/4

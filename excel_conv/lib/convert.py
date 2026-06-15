@@ -6,6 +6,27 @@ from datetime import datetime
 from django.utils import timezone
 from django.conf import settings
 import os
+import re
+
+
+# --------------------------------------------------
+def _format_judgment(filing_value):
+    """Extract the judgment dollar amount from the source 'Filing' cell.
+
+    The Filing column (D) holds multi-line text with a line like
+    'Amount:$7,798'. Returns the value formatted as '$7,798.00', or '' when
+    no amount is present.
+    """
+    if not filing_value:
+        return ""
+    match = re.search(r"Amount:\s*\$?([\d,]+(?:\.\d{1,2})?)", str(filing_value), re.IGNORECASE)
+    if not match:
+        return ""
+    try:
+        amount = float(match.group(1).replace(",", ""))
+    except ValueError:
+        return ""
+    return f"${amount:,.2f}"
 
 
 # --------------------------------------------------
@@ -47,8 +68,8 @@ def convert_sheet(object):
     converted_worksheet = converted_workbook.active
     
     # write the header row to the converted spreadsheet
-    header_labels = ["name", "ADDRESS_1", "City", "State", "Zip", "Creditor"]
-    column_letters = "ABCDEF"
+    header_labels = ["name", "ADDRESS_1", "City", "State", "Zip", "Creditor", "Judgment"]
+    column_letters = "ABCDEFG"
     for i, label in enumerate(header_labels):
         converted_worksheet[column_letters[i] + "1"] = label
     converted_workbook.save(temp_file_path)
@@ -85,6 +106,7 @@ def convert_sheet(object):
         data = {
             "debtor_name": working_row[1].value,
             "debtor_address": working_row[2].value,
+            "filing": working_row[3].value,
             "creditor": working_row[4].value,
         }
 
@@ -189,6 +211,7 @@ def convert_sheet(object):
                     new_file_working_row[3].value = debtor_state
                     new_file_working_row[4].value = debtor_zip
                     new_file_working_row[5].value = data["creditor"]
+                    new_file_working_row[6].value = _format_judgment(data["filing"])
 
                 # for index, (key, value) in enumerate(data.items()):
                 #     new_file_working_row[index].value = value

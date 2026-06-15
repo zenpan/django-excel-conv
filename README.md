@@ -4,8 +4,9 @@ Django application for converting uploaded LexisNexis "Public Records Results
 List" court Excel workbooks into a mail-merge-friendly spreadsheet for the
 Doyaga Law Firm letter workflow. Production: <https://excel.doyagalawfirm.com>.
 
-Each debtor record is flattened into six columns — `name`, `ADDRESS_1`, `City`,
-`State`, `Zip`, `Creditor`. Both the New York / New Jersey **and** Florida
+Each debtor record is flattened into seven columns — `name`, `ADDRESS_1`,
+`City`, `State`, `Zip`, `Creditor`, `Judgment` (the judgment dollar amount,
+e.g. `$10,329.00`). Both the New York / New Jersey **and** Florida
 exports are supported; they share the `Public Records Results List` layout
 delimited by `No.` and `Permissible Use:` markers (the Florida export keeps its
 data behind an empty active `Sheet1`, which the converter handles). Converted
