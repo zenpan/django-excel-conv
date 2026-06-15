@@ -55,6 +55,7 @@
       <tr>
         <th scope="col">Job ID</th>
         <th scope="col">Original File</th>
+        <th scope="col">Source</th>
         <th scope="col">Convert</th>
         <th scope="col">Converted File</th>
         <th scope="col">Status</th>
@@ -68,6 +69,18 @@
       <td>{{ job.id }}</td>
       <td>
         <a href="{% url 'download' job.id 'source' %}">{{ job.excel_file.name|slice:"12:"}}</a>
+      </td>
+      <td>
+        <form method="post" action="{% url 'set_source' job.id %}" class="d-flex gap-1">
+          {% csrf_token %}
+          <select name="source_type" class="form-select form-select-sm">
+            <option value="" {% if not job.source_type %}selected{% endif %}>Auto / unknown</option>
+            {% for value, label in source_choices %}
+              <option value="{{ value }}" {% if job.source_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-outline-secondary btn-sm">Set</button>
+        </form>
       </td>
       {% if not job.success %}
         <td>

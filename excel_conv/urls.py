@@ -9,5 +9,6 @@ urlpatterns = [
     path('convert/<job_id>', views.convert, name='convert'),
     path('delete/<job_id>', views.delete, name='delete'),
     path('download/<int:job_id>/<str:which>', views.download, name='download'),
+    path('source/<int:job_id>', views.set_source, name='set_source'),
 ]
 

@@ -9,12 +9,22 @@ Each debtor record is flattened into a mail-merge row: `name`, `ADDRESS_1`,
 `$10,329.00`), followed by filing-detail columns parsed from the source Filing
 cell — `FilingDate`, `JudgmentType`, `FilingNumber`, `FilingDate2`, `BookPage`,
 `FilingOffice` (left blank when a record doesn't have them). Claims with
-co-defendants produce one row per debtor. Both the New York / New Jersey
-**and** Florida
-exports are supported; they share the `Public Records Results List` layout
-delimited by `No.` and `Permissible Use:` markers (the Florida export keeps its
-data behind an empty active `Sheet1`, which the converter handles). Converted
-and source files are downloaded through a login-required view.
+co-defendants produce one row per debtor.
+
+**Two source formats are supported, auto-detected on upload (with a manual
+override on the Jobs page):**
+
+1. **LexisNexis** `.xlsx` public-records exports (New York, New Jersey and
+   Florida) — a `Public Records Results List` grid delimited by `No.` and
+   `Permissible Use:` markers (the Florida export keeps its data behind an empty
+   active `Sheet1`, which the converter handles).
+2. **New York Supreme Court / county-clerk** `.xls` exports (Crystal Reports) —
+   a report-block layout, read with `xlrd`, where each Defendant becomes a
+   debtor row and the Plaintiff is the Creditor.
+
+A converter registry (`excel_conv/lib/sources.py`) routes each job to the right
+parser; both write the same mail-merge schema. Converted and source files are
+downloaded through a login-required view.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
 
