@@ -23,6 +23,15 @@
           </div>
         </div>
       {% endif %}
+      {% if message.tags == "error" %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <div>
+            <svg class="bi flex-shrink-0 me-2" width="32" height="32" role="img" aria-label="Error:"><use xlink:href="#exclamation-triangle-fill"/></svg>
+            <strong>{{ message }}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        </div>
+      {% endif %}
     {% endfor %}
   {% endif %}
 <p>

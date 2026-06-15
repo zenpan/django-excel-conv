@@ -130,3 +130,27 @@ class ViewTests(TestCase):
 
         self.assertContains(response, "Completed")
         self.assertContains(response, "Done")
+
+    def test_convert_missing_job_returns_404_not_500(self):
+        # Regression: /convert/<missing id> used to raise DoesNotExist -> HTTP 500
+        # (e.g. https://excel.doyagalawfirm.com/convert/517). It must be 404.
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("convert", args=[517]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_delete_missing_job_returns_404_not_500(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("delete", args=[517]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_convert_existing_job_succeeds(self):
+        self.client.force_login(self.user)
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile("source.xlsx", make_source_workbook()),
+        )
+
+        response = self.client.get(reverse("convert", args=[job.id]))
+
+        self.assertRedirects(response, reverse("jobs"))
+        job.refresh_from_db()
+        self.assertTrue(job.success)

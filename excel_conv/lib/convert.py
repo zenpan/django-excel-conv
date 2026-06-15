@@ -171,9 +171,13 @@ def convert_sheet(object):
                 print(f"creditor: {data['creditor']}")
                 raise e  # Optionally re-raise the exception to stop execution
 
-        converted_workbook.save(temp_file_path)
         i += 1
-    
+
+    # Save once after all rows are processed. Saving inside the loop made this
+    # O(n^2): a ~1500-row file took ~35s and timed out the gunicorn worker
+    # (the "error/blank page" the client reported). One save is ~linear.
+    converted_workbook.save(temp_file_path)
+
     # close the workbooks
     original_workbook.close()
     converted_workbook.close()
