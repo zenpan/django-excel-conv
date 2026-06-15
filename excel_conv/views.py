@@ -10,8 +10,7 @@
 """
 
 from pathlib import Path
-from django.shortcuts import render, redirect
-# from django.http import HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic.edit import CreateView
 from django.urls import reverse_lazy
 from django.contrib import messages
@@ -34,7 +33,7 @@ def index(request):
 @login_required
 def delete(request, job_id):
     """ The delete view for the program """
-    object = ConvJob.objects.get(pk=job_id)
+    object = get_object_or_404(ConvJob, pk=job_id)
     excel_file_path = Path(object.excel_file.path)
     conv_file_path = Path(object.conv_file.path) if object.conv_file else None
     object.delete()
@@ -107,7 +106,21 @@ class Upload(LoginRequiredMixin, CreateView):
 # --------------------------------------------------
 @login_required
 def convert(request, job_id):
-    """ The convert view for the program """
-    object = ConvJob.objects.get(pk=job_id)
-    convert_sheet(object)
+    """ Run the conversion for a single job and report the outcome.
+
+    Uses get_object_or_404 so a missing job returns 404 (not a 500), and
+    guards the conversion so a bad/oversized file can never bubble up as a
+    server error -- the user gets a message instead.
+    """
+    object = get_object_or_404(ConvJob, pk=job_id)
+    try:
+        convert_sheet(object)
+        messages.success(request, 'File converted successfully.')
+    except Exception:
+        object.success = False
+        object.save()
+        messages.error(
+            request,
+            'Conversion failed. Check that the file is in the expected format.',
+        )
     return redirect('jobs')
