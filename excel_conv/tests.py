@@ -56,6 +56,30 @@ def make_multi_sheet_source_workbook():
     return stream.getvalue()
 
 
+def make_workbook_with_bad_row():
+    """One valid record plus a record that has a creditor but an EMPTY address
+    cell (the job-516 case). Pre-fix this raised AttributeError and aborted the
+    whole conversion; it must now be skipped, leaving the valid row converted."""
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet["A1"] = "No."
+    # valid record (row 3)
+    worksheet["B3"] = "DOE, JOHN Q"
+    worksheet["C3"] = "123 Main St\nNewark, NJ 07102\nEssex County"
+    worksheet["D3"] = "Amount:$500"
+    worksheet["E3"] = "Creditor LLC"
+    # malformed record (row 4): creditor present, address missing
+    worksheet["B4"] = "DESMOND, THOMAS"
+    worksheet["E4"] = "LVNV FUNDING LLC"
+    worksheet["A7"] = "Permissible Use:"  # ending_row = 7 - 3 = 4
+
+    stream = BytesIO()
+    workbook.save(stream)
+    workbook.close()
+    stream.seek(0)
+    return stream.getvalue()
+
+
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class ConversionTests(TestCase):
     @classmethod
@@ -126,6 +150,25 @@ class ConversionTests(TestCase):
         self.assertEqual(_format_judgment("Amount:$1,234.56"), "$1,234.56")
         self.assertEqual(_format_judgment("Filing Date:1/1/2026\nno amount here"), "")
         self.assertEqual(_format_judgment(None), "")
+
+    def test_convert_skips_row_with_missing_address(self):
+        # Regression for job 516: a record with a creditor but an empty address
+        # used to crash the whole conversion. It must now be skipped while the
+        # valid records still convert.
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile("bad_row.xlsx", make_workbook_with_bad_row())
+        )
+
+        self.assertTrue(convert_sheet(job))
+
+        job.refresh_from_db()
+        self.assertTrue(job.success)
+        converted = load_workbook(TEST_MEDIA_ROOT / job.conv_file.name)
+        worksheet = converted.active
+        # header + exactly one valid row; the malformed row was skipped
+        self.assertEqual(worksheet.max_row, 2)
+        self.assertEqual(worksheet["A2"].value, "JOHN Q DOE")
+        converted.close()
 
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
