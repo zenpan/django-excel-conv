@@ -132,10 +132,10 @@ class ViewTests(TestCase):
         self.assertContains(response, "Done")
 
     def test_convert_missing_job_returns_404_not_500(self):
-        # Regression: /convert/<missing id> used to raise DoesNotExist -> HTTP 500
-        # (e.g. https://excel.doyagalawfirm.com/convert/517). It must be 404.
+        # Regression: /convert/<missing id> used to raise DoesNotExist -> HTTP 500.
+        # It must be 404.
         self.client.force_login(self.user)
-        response = self.client.get(reverse("convert", args=[517]))
+        response = self.client.get(reverse("convert", args=[999999]))
         self.assertEqual(response.status_code, 404)
 
     def test_delete_missing_job_returns_404_not_500(self):
@@ -154,3 +154,25 @@ class ViewTests(TestCase):
         self.assertRedirects(response, reverse("jobs"))
         job.refresh_from_db()
         self.assertTrue(job.success)
+
+    def test_convert_unparseable_file_fails_gracefully(self):
+        # Regression for the production /convert/517 incident: an Excel file
+        # without the expected "No." / "Permissible Use:" markers (e.g. the
+        # Florida export) raised UnboundLocalError -> HTTP 500. It must now
+        # redirect with an error message instead of crashing.
+        self.client.force_login(self.user)
+        workbook = Workbook()
+        workbook.active["A1"] = "completely different layout"
+        stream = BytesIO()
+        workbook.save(stream)
+        workbook.close()
+        stream.seek(0)
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile("FL_SOUTH.xlsx", stream.getvalue()),
+        )
+
+        response = self.client.get(reverse("convert", args=[job.id]))
+
+        self.assertRedirects(response, reverse("jobs"))
+        job.refresh_from_db()
+        self.assertFalse(job.success)
