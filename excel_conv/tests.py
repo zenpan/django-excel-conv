@@ -11,7 +11,7 @@ from openpyxl import Workbook, load_workbook
 
 from django_excel import __version__
 
-from excel_conv.lib.convert import convert_sheet, _format_judgment
+from excel_conv.lib.convert import convert_sheet, _format_judgment, _parse_filing_fields
 from excel_conv.models import ConvJob
 
 
@@ -24,7 +24,11 @@ def make_source_workbook():
     worksheet["A1"] = "No."
     worksheet["B3"] = "DOE, JOHN Q"
     worksheet["C3"] = "123 Main St\nNewark, NJ 07102\nEssex County"
-    worksheet["D3"] = "Filing Date:1/1/2026\nAmount:$10,329\nCIVIL JUDGMENT"
+    worksheet["D3"] = (
+        "Filing Date:1/1/2026\nAmount:$10,329\nCIVIL JUDGMENT\n"
+        "Filing Number:ABC123\nFiling Date:1/2/2026\nBook/Page:100/200\n"
+        "Filing Office:Test Court"
+    )
     worksheet["E3"] = "Creditor LLC"
     worksheet["A6"] = "Permissible Use:"
 
@@ -137,12 +141,20 @@ class ConversionTests(TestCase):
         converted = load_workbook(TEST_MEDIA_ROOT / job.conv_file.name)
         worksheet = converted.active
         self.assertEqual(
-            [worksheet[f"{column}1"].value for column in "ABCDEFG"],
-            ["name", "ADDRESS_1", "City", "State", "Zip", "Creditor", "Judgment"],
+            [worksheet[f"{column}1"].value for column in "ABCDEFGHIJKLM"],
+            [
+                "name", "ADDRESS_1", "City", "State", "Zip", "Creditor", "Judgment",
+                "FilingDate", "JudgmentType", "FilingNumber", "FilingDate2",
+                "BookPage", "FilingOffice",
+            ],
         )
         self.assertEqual(
-            [worksheet[f"{column}2"].value for column in "ABCDEFG"],
-            ["JOHN Q DOE", "123 Main St", "Newark", "NJ", "07102", "Creditor LLC", "$10,329.00"],
+            [worksheet[f"{column}2"].value for column in "ABCDEFGHIJKLM"],
+            [
+                "JOHN Q DOE", "123 Main St", "Newark", "NJ", "07102", "Creditor LLC",
+                "$10,329.00", "1/1/2026", "CIVIL JUDGMENT", "ABC123", "1/2/2026",
+                "100/200", "Test Court",
+            ],
         )
         converted.close()
 
@@ -178,6 +190,35 @@ class ConversionTests(TestCase):
         self.assertEqual(_format_judgment("Amount:$1,234.56"), "$1,234.56")
         self.assertEqual(_format_judgment("Filing Date:1/1/2026\nno amount here"), "")
         self.assertEqual(_format_judgment(None), "")
+
+    def test_parse_filing_fields(self):
+        full = (
+            "Filing Date:1/12/2026\nAmount:$7,798\nSMALL CLAIMS JUDGMENT\n"
+            "Filing Number:2025149620SP21\nFiling Date:1/13/2026\n"
+            "Book/Page:35116/2236\nFiling Office:CIRCUIT COURT - MIAMI, FL"
+        )
+        self.assertEqual(
+            _parse_filing_fields(full),
+            {
+                "FilingDate": "1/12/2026",
+                "JudgmentType": "SMALL CLAIMS JUDGMENT",
+                "FilingNumber": "2025149620SP21",
+                "FilingDate2": "1/13/2026",
+                "BookPage": "35116/2236",
+                "FilingOffice": "CIRCUIT COURT - MIAMI, FL",
+            },
+        )
+        # Missing fields (no Book/Page) come back empty, not absent.
+        no_bookpage = (
+            "Filing Date:3/13/2023\nAmount:$10,329\nCIVIL JUDGMENT\n"
+            "Filing Number:COWE22003271\nFiling Date:3/13/2023\n"
+            "Filing Office:BROWARD CIRCUIT COURT, FL"
+        )
+        parsed = _parse_filing_fields(no_bookpage)
+        self.assertEqual(parsed["BookPage"], "")
+        self.assertEqual(parsed["FilingNumber"], "COWE22003271")
+        # Empty / missing input -> every field blank.
+        self.assertEqual(set(_parse_filing_fields(None).values()), {""})
 
     def test_convert_skips_row_with_missing_address(self):
         # Regression for job 516: a record with a creditor but an empty address

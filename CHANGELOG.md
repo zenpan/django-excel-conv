@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-06-15
+
+### Added
+- Six filing-detail columns parsed from the source "Filing" column, appended
+  after `Judgment`: **`FilingDate`, `JudgmentType`, `FilingNumber`,
+  `FilingDate2`, `BookPage`, `FilingOffice`**. Fields that aren't present in a
+  record are left blank ([#11]).
+
 ## [1.4.0] - 2026-06-15
 
 ### Added
@@ -93,12 +101,14 @@ Modernization release (migrated `excel.doyagalawfirm.com`; URL unchanged).
   it to string literals.
 - `convert` and `delete` actions now require login (matching upload and jobs).
 
+[1.5.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.5.0
 [1.4.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.4.0
 [1.3.1]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.3.1
 [1.3.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.3.0
 [1.2.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.2.0
 [1.1.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.1.0
 [1.0.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.0.0
+[#11]: https://github.com/zenpan/django-excel-conv/pull/11
 [#10]: https://github.com/zenpan/django-excel-conv/pull/10
 [#9]: https://github.com/zenpan/django-excel-conv/pull/9
 [#8]: https://github.com/zenpan/django-excel-conv/pull/8

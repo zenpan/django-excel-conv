@@ -29,6 +29,67 @@ def _format_judgment(filing_value):
     return f"${amount:,.2f}"
 
 
+# Order the parsed Filing fields appear as columns in the converted sheet.
+FILING_FIELD_ORDER = (
+    "FilingDate",
+    "JudgmentType",
+    "FilingNumber",
+    "FilingDate2",
+    "BookPage",
+    "FilingOffice",
+)
+
+
+# --------------------------------------------------
+def _parse_filing_fields(filing_value):
+    """Parse the LexisNexis 'Filing' cell (column D) into named fields.
+
+    The cell is multi-line -- labelled lines plus one unlabelled line for the
+    judgment type, e.g.:
+        Filing Date:1/12/2026
+        Amount:$7,798
+        SMALL CLAIMS JUDGMENT
+        Filing Number:2025149620SP21
+        Filing Date:1/12/2026
+        Book/Page:35116/2236
+        Filing Office:CIRCUIT COURT - CIVIL DIVISION - MIAMI, FL
+    Returns a dict keyed by FILING_FIELD_ORDER. Any field that isn't present
+    comes back as '' (an empty cell). 'Amount' is handled separately by the
+    Judgment column.
+    """
+    fields = {key: "" for key in FILING_FIELD_ORDER}
+    if not filing_value:
+        return fields
+
+    filing_dates = []
+    for line in str(filing_value).splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if ":" in line:
+            label, _, value = line.partition(":")
+            label = label.strip().lower()
+            value = value.strip()
+            if label == "filing date":
+                filing_dates.append(value)
+            elif label == "filing number":
+                fields["FilingNumber"] = value
+            elif label == "book/page":
+                fields["BookPage"] = value
+            elif label == "filing office":
+                fields["FilingOffice"] = value
+            # 'Amount' and any other labelled lines are ignored here.
+        elif not fields["JudgmentType"]:
+            # The one unlabelled line is the judgment type (e.g. "CIVIL JUDGMENT").
+            fields["JudgmentType"] = line
+
+    if filing_dates:
+        fields["FilingDate"] = filing_dates[0]
+        if len(filing_dates) > 1:
+            fields["FilingDate2"] = filing_dates[1]
+    return fields
+
+
 # --------------------------------------------------
 def _select_data_worksheet(workbook):
     """Return the worksheet that holds the debtor records.
@@ -68,8 +129,11 @@ def convert_sheet(object):
     converted_worksheet = converted_workbook.active
     
     # write the header row to the converted spreadsheet
-    header_labels = ["name", "ADDRESS_1", "City", "State", "Zip", "Creditor", "Judgment"]
-    column_letters = "ABCDEFG"
+    header_labels = [
+        "name", "ADDRESS_1", "City", "State", "Zip", "Creditor", "Judgment",
+        *FILING_FIELD_ORDER,
+    ]
+    column_letters = "ABCDEFGHIJKLM"
     for i, label in enumerate(header_labels):
         converted_worksheet[column_letters[i] + "1"] = label
     converted_workbook.save(temp_file_path)
@@ -239,6 +303,10 @@ def convert_sheet(object):
                     new_file_working_row[4].value = debtor_zip
                     new_file_working_row[5].value = data["creditor"]
                     new_file_working_row[6].value = _format_judgment(data["filing"])
+                    # Filing-detail columns (H-M); missing fields stay blank.
+                    filing_fields = _parse_filing_fields(data["filing"])
+                    for offset, key in enumerate(FILING_FIELD_ORDER, start=7):
+                        new_file_working_row[offset].value = filing_fields[key]
 
                 # for index, (key, value) in enumerate(data.items()):
                 #     new_file_working_row[index].value = value
