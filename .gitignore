@@ -7,3 +7,5 @@ __pycache__/
 *.pyc
 media/tmp/*
 .idea/
+# Sample NY Supreme Court source files: binary, contain debtor PII, regenerable.
+judgments/
