@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.1] - 2026-06-15
+
+### Fixed
+- A record with a creditor but an empty **Address** cell crashed the entire
+  conversion (`'NoneType' object has no attribute 'splitlines'`) because the
+  row handler re-raised. Such rows are now skipped — one malformed record no
+  longer blocks all the others — and missing name/address is guarded up front
+  (regression: production job 516) ([#9]).
+
 ## [1.3.0] - 2026-06-15
 
 ### Added
@@ -67,10 +76,12 @@ Modernization release (migrated `excel.doyagalawfirm.com`; URL unchanged).
   it to string literals.
 - `convert` and `delete` actions now require login (matching upload and jobs).
 
+[1.3.1]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.3.1
 [1.3.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.3.0
 [1.2.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.2.0
 [1.1.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.1.0
 [1.0.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.0.0
+[#9]: https://github.com/zenpan/django-excel-conv/pull/9
 [#8]: https://github.com/zenpan/django-excel-conv/pull/8
 [#7]: https://github.com/zenpan/django-excel-conv/pull/7
 [#2]: https://github.com/zenpan/django-excel-conv/pull/2

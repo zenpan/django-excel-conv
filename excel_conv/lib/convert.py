@@ -112,6 +112,14 @@ def convert_sheet(object):
 
         if data["creditor"]:
             try:
+                # A creditor can be present while the name or address cell is
+                # empty; skip those rows up front so calling .splitlines() on
+                # None cannot crash the whole job (regression: job 516).
+                if data["debtor_name"] is None or data["debtor_address"] is None:
+                    print(f"Skipping row {i}: missing name or address.")
+                    i += 1
+                    continue
+
                 # Process debtor name
                 debtor_name_lines = data["debtor_name"].splitlines()
                 if len(debtor_name_lines) >= 1 and debtor_name_lines[0]:
@@ -218,11 +226,9 @@ def convert_sheet(object):
 
                 new_file_row += 1
             except Exception as e:
-                print(f"Error processing row {i}: {e}")
-                print(f"debtor_name: {data['debtor_name']}")
-                print(f"debtor_address: {data['debtor_address']}")
-                print(f"creditor: {data['creditor']}")
-                raise e  # Optionally re-raise the exception to stop execution
+                # Skip this row rather than aborting the whole job: one
+                # malformed record must not block every other one.
+                print(f"Skipping row {i}: error processing row: {e}")
 
         i += 1
 
