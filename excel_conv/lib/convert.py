@@ -8,6 +8,12 @@ from django.conf import settings
 import os
 import re
 
+from excel_conv.lib.mailmerge import (
+    FILING_FIELD_ORDER,
+    OUTPUT_COLUMN_LETTERS,
+    OUTPUT_HEADER,
+)
+
 
 # --------------------------------------------------
 def _format_judgment(filing_value):
@@ -27,17 +33,6 @@ def _format_judgment(filing_value):
     except ValueError:
         return ""
     return f"${amount:,.2f}"
-
-
-# Order the parsed Filing fields appear as columns in the converted sheet.
-FILING_FIELD_ORDER = (
-    "FilingDate",
-    "JudgmentType",
-    "FilingNumber",
-    "FilingDate2",
-    "BookPage",
-    "FilingOffice",
-)
 
 
 # --------------------------------------------------
@@ -109,6 +104,27 @@ def _select_data_worksheet(workbook):
 
 
 # --------------------------------------------------
+def detect_lexisnexis(path):
+    """True if path looks like a LexisNexis 'Public Records Results List' export."""
+    if not str(path).lower().endswith(".xlsx"):
+        return False
+    try:
+        workbook = load_workbook(path, data_only=True)
+    except Exception:
+        return False
+    try:
+        for worksheet in workbook.worksheets:
+            if worksheet.title == "Public Records Results List":
+                return True
+            for row in range(1, min(worksheet.max_row, 50) + 1):
+                if worksheet.cell(row=row, column=1).value == "No.":
+                    return True
+    finally:
+        workbook.close()
+    return False
+
+
+# --------------------------------------------------
 def convert_sheet(object):
     """convert_sheet function to test the conversion process"""
     
@@ -129,11 +145,8 @@ def convert_sheet(object):
     converted_worksheet = converted_workbook.active
     
     # write the header row to the converted spreadsheet
-    header_labels = [
-        "name", "ADDRESS_1", "City", "State", "Zip", "Creditor", "Judgment",
-        *FILING_FIELD_ORDER,
-    ]
-    column_letters = "ABCDEFGHIJKLM"
+    header_labels = OUTPUT_HEADER
+    column_letters = OUTPUT_COLUMN_LETTERS
     for i, label in enumerate(header_labels):
         converted_worksheet[column_letters[i] + "1"] = label
     converted_workbook.save(temp_file_path)

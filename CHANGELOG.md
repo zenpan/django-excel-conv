@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-06-15
+
+### Added
+- **New York Supreme Court (county-clerk) judgment exports** are now supported
+  alongside LexisNexis. These are `.xls` (Crystal Reports) files with a
+  report-block layout; they're read with `xlrd`, each **Defendant** becomes a
+  debtor row (one row per co-defendant), the **Plaintiff** is the Creditor, and
+  Amount / Date Filed / Index # / county clerk map to the Judgment / FilingDate /
+  FilingNumber / FilingOffice columns. Defendant names are kept as recorded
+  (the court data has no "Last, First" delimiter) ([#12]).
+- **Automatic source detection**: each upload is tagged LexisNexis or NY Supreme
+  Court (stored on the job) and the single Convert button routes to the matching
+  converter — with a **manual-override** dropdown on the Jobs page.
+- Converters are organized as a registry (`excel_conv/lib/sources.py`) over a
+  shared output schema (`excel_conv/lib/mailmerge.py`), so new source formats
+  are drop-in.
+
+### Changed
+- `ConvJob` gained a `source_type` field (migration `0006`).
+- New dependency **`xlrd`** (reads the `.xls` NY Supreme Court exports).
+
 ## [1.5.0] - 2026-06-15
 
 ### Added
@@ -101,6 +122,7 @@ Modernization release (migrated `excel.doyagalawfirm.com`; URL unchanged).
   it to string literals.
 - `convert` and `delete` actions now require login (matching upload and jobs).
 
+[2.0.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v2.0.0
 [1.5.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.5.0
 [1.4.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.4.0
 [1.3.1]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.3.1
@@ -108,6 +130,7 @@ Modernization release (migrated `excel.doyagalawfirm.com`; URL unchanged).
 [1.2.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.2.0
 [1.1.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.1.0
 [1.0.0]: https://github.com/zenpan/django-excel-conv/releases/tag/v1.0.0
+[#12]: https://github.com/zenpan/django-excel-conv/pull/12
 [#11]: https://github.com/zenpan/django-excel-conv/pull/11
 [#10]: https://github.com/zenpan/django-excel-conv/pull/10
 [#9]: https://github.com/zenpan/django-excel-conv/pull/9

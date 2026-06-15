@@ -18,10 +18,11 @@ from django.urls import reverse_lazy
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from excel_conv.models import ConvJob
 from excel_conv.forms import UploadJobForm
-from excel_conv.lib.convert import convert_sheet
+from excel_conv.lib.sources import convert_job, detect_source, SOURCE_CHOICES
 
 
 # --------------------------------------------------
@@ -85,8 +86,9 @@ def jobs(request):
     return render(
         request, 'jobs.html',
         {
-            'all_jobs': all_jobs, 
+            'all_jobs': all_jobs,
             'welcome_text': context,
+            'source_choices': SOURCE_CHOICES,
         }
     )
 
@@ -99,9 +101,16 @@ class Upload(LoginRequiredMixin, CreateView):
     template_name = 'upload.html'
     # if successful add a success message
     def form_valid(self, form):
+        response = super().form_valid(form)
+        # Auto-detect and tag the source format (LexisNexis vs NY Supreme Court).
+        try:
+            self.object.source_type = detect_source(self.object.excel_file.path) or ''
+            self.object.save(update_fields=['source_type'])
+        except Exception:
+            pass
         messages.success(self.request, 'File uploaded successfully!')
-        messages.info(self.request, 'It will take about 30 seconds to convert the file after pressing the "Convert" button.')
-        return super().form_valid(form)
+        messages.info(self.request, 'Press the "Convert" button on the Jobs page to convert it.')
+        return response
     success_url = reverse_lazy('jobs')
 
 
@@ -116,7 +125,7 @@ def convert(request, job_id):
     """
     object = get_object_or_404(ConvJob, pk=job_id)
     try:
-        succeeded = convert_sheet(object)
+        succeeded = convert_job(object)
     except Exception:
         object.success = False
         object.save()
@@ -150,3 +159,17 @@ def download(request, job_id, which):
         as_attachment=True,
         filename=os.path.basename(field.name),
     )
+
+
+# --------------------------------------------------
+@login_required
+@require_POST
+def set_source(request, job_id):
+    """ Manually override the detected source format for a job. """
+    job = get_object_or_404(ConvJob, pk=job_id)
+    choice = request.POST.get('source_type', '').strip()
+    valid = {key for key, _ in SOURCE_CHOICES}
+    job.source_type = choice if choice in valid else ''
+    job.save(update_fields=['source_type'])
+    messages.success(request, 'Source format updated.')
+    return redirect('jobs')

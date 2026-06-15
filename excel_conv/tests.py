@@ -2,6 +2,7 @@ import shutil
 import tempfile
 from io import BytesIO
 from pathlib import Path
+from unittest import mock
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -12,6 +13,9 @@ from openpyxl import Workbook, load_workbook
 from django_excel import __version__
 
 from excel_conv.lib.convert import convert_sheet, _format_judgment, _parse_filing_fields
+from excel_conv.lib import nysc
+from excel_conv.lib.nysc import extract_nysc_records, _parse_nysc_address
+from excel_conv.lib.sources import convert_job, detect_source, source_label
 from excel_conv.models import ConvJob
 
 
@@ -412,3 +416,146 @@ class ViewTests(TestCase):
         )
         response = self.client.get(reverse("download", args=[job.id, "bogus"]))
         self.assertEqual(response.status_code, 404)
+
+
+def _nysc_row(cells):
+    """Build a 37-wide source row with the given (0-indexed) columns set."""
+    row = [""] * 37
+    for index, value in cells.items():
+        row[index] = value
+    return row
+
+
+def nysc_sample_rows():
+    """Synthetic NY Supreme Court report rows: two judgments, the first with two
+    co-defendants, the second a single company defendant."""
+    return [
+        _nysc_row({12: "Test County Clerk"}),                       # report header
+        _nysc_row({2: "Index #"}),                                  # column header
+        _nysc_row({2: 1001.0, 12: "2025/02/11 1032", 21: 5000.5,
+                     30: "Plaintiff:", 36: "ACME BANK"}),
+        _nysc_row({36: "100 MAIN ST\nNEW YORK, NY 10001"}),
+        _nysc_row({30: "Defendant:", 36: "SMITH JOHN"}),
+        _nysc_row({36: "200 OAK AVE\nYONKERS, NY 10701"}),
+        _nysc_row({30: "Defendant:", 36: "SMITH JANE"}),
+        _nysc_row({36: "200 OAK AVE\nYONKERS, NY 10701"}),
+        _nysc_row({2: 1002.0, 12: "2025/02/12 0900", 21: 1234.0,
+                     30: "Plaintiff:", 36: "BANK TWO"}),
+        _nysc_row({36: "5 ELM ST\nRYE, NY 10580"}),
+        _nysc_row({30: "Defendant:", 36: "WIDGETS LLC"}),
+        _nysc_row({36: "9 PINE RD\nHARRISON, NY 10528"}),
+    ]
+
+
+class NyscParsingTests(TestCase):
+    def test_extract_records_with_co_defendants(self):
+        records = extract_nysc_records(nysc_sample_rows(), "Test County Clerk")
+        self.assertEqual(len(records), 3)
+
+        claim = [r for r in records if r["FilingNumber"] == "1001"]
+        self.assertEqual([r["name"] for r in claim], ["SMITH JOHN", "SMITH JANE"])
+        for record in claim:  # co-defendants share the claim's creditor + amount
+            self.assertEqual(record["Creditor"], "ACME BANK")
+            self.assertEqual(record["Judgment"], "$5,000.50")
+            self.assertEqual(record["FilingDate"], "2025/02/11")
+            self.assertEqual(record["FilingOffice"], "Test County Clerk")
+        first = claim[0]
+        self.assertEqual(
+            (first["ADDRESS_1"], first["City"], first["State"], first["Zip"]),
+            ("200 OAK AVE", "YONKERS", "NY", "10701"),
+        )
+
+        company = [r for r in records if r["FilingNumber"] == "1002"][0]
+        self.assertEqual(company["name"], "WIDGETS LLC")  # company kept as-is
+        self.assertEqual(company["Judgment"], "$1,234.00")
+
+    def test_parse_address(self):
+        self.assertEqual(
+            _parse_nysc_address("889 JAMES ST\nPELHAM MAN, NY 10803"),
+            ("889 JAMES ST", "PELHAM MAN", "NY", "10803"),
+        )
+        self.assertEqual(_parse_nysc_address(""), ("", "", "", ""))
+        self.assertEqual(_parse_nysc_address("ONLY STREET"), ("ONLY STREET", "", "", ""))
+
+
+@override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
+class NyscConversionTests(TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEST_MEDIA_ROOT, ignore_errors=True)
+
+    def setUp(self):
+        (TEST_MEDIA_ROOT / "excel_files").mkdir(parents=True, exist_ok=True)
+        (TEST_MEDIA_ROOT / "conv_files").mkdir(parents=True, exist_ok=True)
+
+    def test_convert_nysc_sheet_writes_mail_merge(self):
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile("nysc.xls", b"dummy"), source_type="nysc"
+        )
+        with mock.patch.object(nysc, "_read_xls_rows", return_value=nysc_sample_rows()):
+            self.assertTrue(nysc.convert_nysc_sheet(job))
+        job.refresh_from_db()
+        self.assertTrue(job.success)
+        worksheet = load_workbook(TEST_MEDIA_ROOT / job.conv_file.name).active
+        self.assertEqual(worksheet["A1"].value, "name")
+        self.assertEqual(worksheet.max_row, 4)  # header + 3 defendants
+        self.assertEqual(worksheet["A2"].value, "SMITH JOHN")
+        self.assertEqual(worksheet["F2"].value, "ACME BANK")
+        self.assertEqual(worksheet["G2"].value, "$5,000.50")
+
+
+@override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
+class SourceRoutingTests(TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEST_MEDIA_ROOT, ignore_errors=True)
+
+    def setUp(self):
+        (TEST_MEDIA_ROOT / "excel_files").mkdir(parents=True, exist_ok=True)
+        (TEST_MEDIA_ROOT / "conv_files").mkdir(parents=True, exist_ok=True)
+        self.user = User.objects.create_user(username="router", password="password")
+
+    def test_detect_source_lexisnexis(self):
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile("ln.xlsx", make_source_workbook())
+        )
+        self.assertEqual(detect_source(job.excel_file.path), "lexisnexis")
+
+    def test_detect_nysc_checks_extension_and_content(self):
+        with mock.patch.object(nysc, "_read_xls_rows", return_value=nysc_sample_rows()):
+            self.assertTrue(nysc.detect_nysc("/tmp/foo.xls"))
+            self.assertFalse(nysc.detect_nysc("/tmp/foo.xlsx"))  # wrong extension
+
+    def test_source_label(self):
+        self.assertEqual(source_label("nysc"), "NY Supreme Court")
+        self.assertEqual(source_label(""), "")
+
+    def test_convert_job_routes_and_tags_lexisnexis(self):
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile("ln.xlsx", make_source_workbook())
+        )
+        self.assertTrue(convert_job(job))
+        job.refresh_from_db()
+        self.assertTrue(job.success)
+        self.assertEqual(job.source_type, "lexisnexis")  # detected + tagged
+
+    def test_convert_job_unrecognized_format(self):
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile("mystery.xlsx", b"not a workbook")
+        )
+        self.assertFalse(convert_job(job))
+        job.refresh_from_db()
+        self.assertFalse(job.success)
+        self.assertIn("source format", (job.error or "").lower())
+
+    def test_set_source_override(self):
+        self.client.force_login(self.user)
+        job = ConvJob.objects.create(
+            excel_file=SimpleUploadedFile("ln.xlsx", make_source_workbook())
+        )
+        response = self.client.post(reverse("set_source", args=[job.id]), {"source_type": "nysc"})
+        self.assertRedirects(response, reverse("jobs"))
+        job.refresh_from_db()
+        self.assertEqual(job.source_type, "nysc")
